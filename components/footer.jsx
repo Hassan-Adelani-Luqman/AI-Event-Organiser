@@ -5,21 +5,15 @@ const Footer = () => {
   return (
     <footer className="border-t border-gray-800/50 py-8 px-6 max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center gap-4">
       <div className="flex gap-4 items-center">
-        <a
-          href="https://www.youtube.com/roadsidecoder"
-          className="text-gray-400"
-        >
+        <div className="text-gray-400 cursor-pointer">
           <Youtube />
-        </a>
-        <a
-          href="https://www.instagram.com/roadsidecoder"
-          className="text-gray-400"
-        >
+        </div>
+        <div className="text-gray-400 cursor-pointer">
           <Instagram className="w-5 h-5" />
-        </a>
-        <a href="https://x.com/Piyush_eon" className="text-gray-400">
+        </div>
+        <div className="text-gray-400 cursor-pointer">
           <Twitter className="w-5 h-5" />
-        </a>
+        </div>
       </div>
     </footer>
   );
