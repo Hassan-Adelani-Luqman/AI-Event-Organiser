@@ -35,7 +35,6 @@ import {
 
 import UnsplashImagePicker from "@/components/unsplash-image-picker";
 import AIEventCreator from "./_components/ai-event-creator";
-import UpgradeModal from "@/components/upgrade-modal";
 import { CATEGORIES } from "@/lib/data";
 import Image from "next/image";
 
@@ -65,12 +64,6 @@ const eventSchema = z.object({
 export default function CreateEventPage() {
   const router = useRouter();
   const [showImagePicker, setShowImagePicker] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [upgradeReason, setUpgradeReason] = useState("limit"); // "limit" or "color"
-
-  // Check if user has Pro plan
-  const { has } = useAuth();
-  const hasPro = has?.({ plan: "pro" });
 
   const { data: currentUser } = useConvexQuery(api.users.getCurrentUser);
   const { mutate: createEvent, isLoading } = useConvexMutation(
@@ -114,21 +107,15 @@ export default function CreateEventPage() {
     return City.getCitiesOfState("IN", st.isoCode);
   }, [selectedState, indianStates]);
 
-  // Color presets - show all for Pro, only default for Free
+  // Color presets - all available to everyone
   const colorPresets = [
-    "#1e3a8a", // Default color (always available)
-    ...(hasPro ? ["#4c1d95", "#065f46", "#92400e", "#7f1d1d", "#831843"] : []),
+    "#1e3a8a",
+    "#4c1d95",
+    "#065f46",
+    "#92400e",
+    "#7f1d1d",
+    "#831843",
   ];
-
-  const handleColorClick = (color) => {
-    // If not default color and user doesn't have Pro
-    if (color !== "#1e3a8a" && !hasPro) {
-      setUpgradeReason("color");
-      setShowUpgradeModal(true);
-      return;
-    }
-    setValue("themeColor", color);
-  };
 
   const combineDateTime = (date, time) => {
     if (!date || !time) return null;
@@ -152,20 +139,6 @@ export default function CreateEventPage() {
         return;
       }
 
-      // Check event limit for Free users
-      if (!hasPro && currentUser?.freeEventsCreated >= 1) {
-        setUpgradeReason("limit");
-        setShowUpgradeModal(true);
-        return;
-      }
-
-      // Check if trying to use custom color without Pro
-      if (data.themeColor !== "#1e3a8a" && !hasPro) {
-        setUpgradeReason("color");
-        setShowUpgradeModal(true);
-        return;
-      }
-
       await createEvent({
         title: data.title,
         description: data.description,
@@ -185,7 +158,6 @@ export default function CreateEventPage() {
         ticketPrice: data.ticketPrice || undefined,
         coverImage: data.coverImage || undefined,
         themeColor: data.themeColor,
-        hasPro,
       });
 
       toast.success("Event created successfully! 🎉");
@@ -213,11 +185,6 @@ export default function CreateEventPage() {
       <div className="max-w-6xl mx-auto flex flex-col gap-5 md:flex-row justify-between mb-10">
         <div>
           <h1 className="text-4xl font-bold">Create Event</h1>
-          {!hasPro && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Free: {currentUser?.freeEventsCreated || 0}/1 events created
-            </p>
-          )}
         </div>
         <AIEventCreator onEventGenerated={handleAIGenerate} />
       </div>
@@ -246,56 +213,21 @@ export default function CreateEventPage() {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">Theme Color</Label>
-              {!hasPro && (
-                <Badge variant="secondary" className="text-xs gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  Pro
-                </Badge>
-              )}
-            </div>
+            <Label className="text-sm">Theme Color</Label>
             <div className="flex gap-2 flex-wrap">
               {colorPresets.map((color) => (
                 <button
                   key={color}
                   type="button"
-                  className={`w-10 h-10 rounded-full border-2 transition-all ${
-                    !hasPro && color !== "#1e3a8a"
-                      ? "opacity-40 cursor-not-allowed"
-                      : "hover:scale-110"
-                  }`}
+                  className="w-10 h-10 rounded-full border-2 transition-all hover:scale-110"
                   style={{
                     backgroundColor: color,
                     borderColor: themeColor === color ? "white" : "transparent",
                   }}
-                  onClick={() => handleColorClick(color)}
-                  title={
-                    !hasPro && color !== "#1e3a8a"
-                      ? "Upgrade to Pro for custom colors"
-                      : ""
-                  }
+                  onClick={() => setValue("themeColor", color)}
                 />
               ))}
-              {!hasPro && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUpgradeReason("color");
-                    setShowUpgradeModal(true);
-                  }}
-                  className="w-10 h-10 rounded-full border-2 border-dashed border-purple-300 flex items-center justify-center hover:border-purple-500 transition-colors"
-                  title="Unlock more colors with Pro"
-                >
-                  <Sparkles className="w-5 h-5 text-purple-400" />
-                </button>
-              )}
             </div>
-            {!hasPro && (
-              <p className="text-xs text-muted-foreground">
-                Upgrade to Pro to unlock custom theme colors
-              </p>
-            )}
           </div>
         </div>
 
@@ -575,13 +507,6 @@ export default function CreateEventPage() {
           }}
         />
       )}
-
-      {/* Upgrade Modal */}
-      <UpgradeModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        trigger={upgradeReason}
-      />
     </div>
   );
 }

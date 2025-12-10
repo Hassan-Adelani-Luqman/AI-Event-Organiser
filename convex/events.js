@@ -23,29 +23,10 @@ export const createEvent = mutation({
     ticketPrice: v.optional(v.number()),
     coverImage: v.optional(v.string()),
     themeColor: v.optional(v.string()),
-    hasPro: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     try {
       const user = await ctx.runQuery(internal.users.getCurrentUser);
-
-      // SERVER-SIDE CHECK: Verify event limit for Free users
-      if (!hasPro && user.freeEventsCreated >= 1) {
-        throw new Error(
-          "Free event limit reached. Please upgrade to Pro to create more events."
-        );
-      }
-
-      // SERVER-SIDE CHECK: Verify custom color usage
-      const defaultColor = "#1e3a8a";
-      if (!hasPro && args.themeColor && args.themeColor !== defaultColor) {
-        throw new Error(
-          "Custom theme colors are a Pro feature. Please upgrade to Pro."
-        );
-      }
-
-      // Force default color for Free users
-      const themeColor = hasPro ? args.themeColor : defaultColor;
 
       // Generate slug from title
       const slug = args.title
@@ -56,18 +37,12 @@ export const createEvent = mutation({
       // Create event
       const eventId = await ctx.db.insert("events", {
         ...args,
-        themeColor, // Use validated color
         slug: `${slug}-${Date.now()}`,
         organizerId: user._id,
         organizerName: user.name,
         registrationCount: 0,
         createdAt: Date.now(),
         updatedAt: Date.now(),
-      });
-
-      // Update user's free event count
-      await ctx.db.patch(user._id, {
-        freeEventsCreated: user.freeEventsCreated + 1,
       });
 
       return eventId;
@@ -133,13 +108,6 @@ export const deleteEvent = mutation({
 
     // Delete the event
     await ctx.db.delete(args.eventId);
-
-    // Update free event count if it was a free event
-    if (event.ticketType === "free" && user.freeEventsCreated > 0) {
-      await ctx.db.patch(user._id, {
-        freeEventsCreated: user.freeEventsCreated - 1,
-      });
-    }
 
     return { success: true };
   },
